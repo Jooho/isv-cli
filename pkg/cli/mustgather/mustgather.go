@@ -84,7 +84,7 @@ type MustGatherOptions struct {
 	RestClient *rest.Config
 	Clientset  kubernetes.Interface
 	SourceDir  string
-	Tar        bool
+	NoTar      bool
 }
 
 func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
@@ -105,7 +105,7 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 	cmd.Flags().StringSliceVar(&o.Images, "image", o.Images, "Requuired. Specify a operator must-gather plugin image to run.")
 	cmd.Flags().StringVar(&o.DestDir, "dest-dir", o.DestDir, "Set a specific directory on the local machine to write gathered data to. Default ./must-gather.local.<rand>")
 	cmd.Flags().Int64Var(&o.Timeout, "timeout", 600, "The length of time to gather data, in seconds. Defaults to 10 minutes.")
-	cmd.Flags().BoolVar(&o.Tar, "notar", o.Tar, "Copy must-gather data without archive")
+	cmd.Flags().BoolVar(&o.NoTar, "notar", o.NoTar, "Copy must-gather data without archive")
 	cmd.Flags().BoolVar(&o.Keep, "keep", o.Keep, "Do not delete temporary resources when command completes.")
 	cmd.Flags().MarkHidden("keep")
 
@@ -173,6 +173,13 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			return err
 		}
 
+		pod, err := o.Client.CoreV1().Pods(currNamespace).Create(context.TODO(), o.newPod(o.NodeName, image), metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+		o.log("pod for plug-in image %s created", image)
+		pods = append(pods, pod)
+
 		if !o.Keep {
 			defer func() {
 				if err := o.Client.RbacV1().RoleBindings(currNamespace).Delete(context.TODO(), roleBinding.Name, metav1.DeleteOptions{}); err != nil {
@@ -183,17 +190,14 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 					fmt.Printf("%v\n", err)
 					return
 				}
+				if err := o.Client.CoreV1().Pods(currNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
+					fmt.Printf("%v\n", err)
+					return
+				}
 
 				o.PrinterDeleted.PrintObj(sa, o.LogOut)
 			}()
 		}
-
-		pod, err := o.Client.CoreV1().Pods(currNamespace).Create(context.TODO(), o.newPod(o.NodeName, image), metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-		o.log("pod for plug-in image %s created", image)
-		pods = append(pods, pod)
 	}
 
 	// log timestamps...
@@ -233,11 +237,11 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 				errCh <- fmt.Errorf("gather never finished for pod %s: %s", pod.Name, err)
 				return
 			}
-			
+
 			pod, err = o.Client.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 
 			// archive the gathered files into tarball format
-			if !o.Tar {
+			if !o.NoTar {
 				log("archieving the gathered data")
 				if err := o.ExecCmdInPod(pod); err != nil {
 					log("archieving failed: %v\n", err)
@@ -260,6 +264,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 				errCh <- fmt.Errorf("unable to download output from pod %s: %s", pod.Name, err)
 				return
 			}
+
 		}(pod)
 	}
 	wg.Wait()
@@ -336,9 +341,13 @@ func (o *MustGatherOptions) logTimestamp() error {
 func (o *MustGatherOptions) copyFilesFromPod(pod *corev1.Pod) error {
 	streams := o.IOStreams
 	streams.Out = newPrefixWriter(streams.Out, fmt.Sprintf("[%s] OUT", pod.Name))
-	destDir := path.Join(o.DestDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(pod.Status.ContainerStatuses[0].ImageID, "-"))
-	if err := os.MkdirAll(destDir, os.ModePerm); err != nil {
-		return err
+	destDir := o.DestDir
+
+	if o.NoTar {
+		destDir = path.Join(o.DestDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(pod.Status.ContainerStatuses[0].ImageID, "-"))
+		if err := os.MkdirAll(destDir, os.ModePerm); err != nil {
+			return err
+		}
 	}
 	rsyncOptions := &rsync.RsyncOptions{
 		Namespace:     pod.Namespace,
@@ -351,31 +360,6 @@ func (o *MustGatherOptions) copyFilesFromPod(pod *corev1.Pod) error {
 		IOStreams:     streams,
 	}
 	rsyncOptions.Strategy = rsync.NewDefaultCopyStrategy(rsyncOptions)
-
-	return rsyncOptions.RunRsync()
-}
-
-func (o *MustGatherOptions) tarFilesInPod(pod *corev1.Pod) error {
-	streams := o.IOStreams
-	streams.Out = newPrefixWriter(streams.Out, fmt.Sprintf("[%s] OUT", pod.Name))
-	destDir := path.Join(o.DestDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(pod.Status.ContainerStatuses[0].ImageID, "-"))
-	if err := os.MkdirAll(destDir, os.ModePerm); err != nil {
-		return err
-	}
-
-	rsyncOptions := &rsync.RsyncOptions{
-		Namespace:     pod.Namespace,
-		Source:        &rsync.PathSpec{PodName: pod.Name, Path: path.Clean(o.SourceDir) + "/"},
-		ContainerName: "copy",
-		Destination:   &rsync.PathSpec{PodName: "", Path: destDir},
-		Client:        o.Client,
-		Config:        o.Config,
-		RshCmd:        fmt.Sprintf("%s --namespace=%s -c copy", o.RsyncRshCmd, pod.Namespace),
-		IOStreams:     streams,
-	}
-	rsyncOptions.Strategy = rsync.NewDefaultCopyStrategy(rsyncOptions)
-
-	// rsyncOptions.Strategy = rsync.NewTarStrategy(rsyncOptions)
 
 	return rsyncOptions.RunRsync()
 }
