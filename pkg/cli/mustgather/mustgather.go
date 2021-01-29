@@ -52,10 +52,6 @@ import (
 	"github.com/openshift/oc/pkg/cli/rsync"
 )
 
-const (
-	mustGatherServiceAccountName string = "must-gather-sa"
-)
-
 var (
 	mustGatherLong = templates.LongDesc(`
 		Launch a pod to gather debugging information
@@ -168,12 +164,12 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 		if err != nil {
 			return err
 		}
-		roleBinding, err := o.Client.RbacV1().RoleBindings(currNamespace).Create(context.TODO(), o.newRoleBinding(), metav1.CreateOptions{})
+		roleBinding, err := o.Client.RbacV1().RoleBindings(currNamespace).Create(context.TODO(), o.newRoleBinding(sa.Name), metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
 
-		pod, err := o.Client.CoreV1().Pods(currNamespace).Create(context.TODO(), o.newPod(o.NodeName, image), metav1.CreateOptions{})
+		pod, err := o.Client.CoreV1().Pods(currNamespace).Create(context.TODO(), o.newPod(o.NodeName, image, sa.Name), metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -453,7 +449,7 @@ func (o *MustGatherOptions) waitForGatherContainerRunning(pod *corev1.Pod) error
 	})
 }
 
-func (o *MustGatherOptions) newPod(node, image string) *corev1.Pod {
+func (o *MustGatherOptions) newPod(node, image, sa string,) *corev1.Pod {
 	zero := int64(0)
 
 	nodeSelector := map[string]string{
@@ -473,7 +469,7 @@ func (o *MustGatherOptions) newPod(node, image string) *corev1.Pod {
 		Spec: corev1.PodSpec{
 			NodeName:           node,
 			RestartPolicy:      corev1.RestartPolicyNever,
-			ServiceAccountName: mustGatherServiceAccountName,
+			ServiceAccountName: sa,
 			Volumes: []corev1.Volume{
 				{
 					Name: "must-gather-output",
@@ -546,7 +542,7 @@ func (o *MustGatherOptions) newSA() *corev1.ServiceAccount {
 	sa := &corev1.ServiceAccount{
 
 		ObjectMeta: metav1.ObjectMeta{
-			Name: mustGatherServiceAccountName,
+			GenerateName: "must-gather-",
 			Labels: map[string]string{
 				"app": "must-gather",
 			},
@@ -556,7 +552,7 @@ func (o *MustGatherOptions) newSA() *corev1.ServiceAccount {
 	return sa
 }
 
-func (o *MustGatherOptions) newRoleBinding() *rbacv1.RoleBinding {
+func (o *MustGatherOptions) newRoleBinding(sa string) *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "must-gather-",
@@ -575,7 +571,7 @@ func (o *MustGatherOptions) newRoleBinding() *rbacv1.RoleBinding {
 		Subjects: []rbacv1.Subject{
 			{
 				Kind: "ServiceAccount",
-				Name: mustGatherServiceAccountName,
+				Name: sa,
 			},
 		},
 	}
