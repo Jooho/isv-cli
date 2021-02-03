@@ -2,7 +2,8 @@
 
 ISV-CLI is for ISV managed service operator.
 
-## High Level Understanding about supporting for ISV managed service operator 
+## High Level Understanding 
+ **about supporting for ISV managed service operator** 
 - When managed service operator have issues, customers(end-user/Red Hat support engineer) need to engage in with ISV directly.
 - ISV need to gather data for debugging.
 

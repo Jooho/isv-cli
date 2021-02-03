@@ -271,10 +271,11 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 	}
 
 	// now gather all the events into a single file and produce a unified file
-	if err := inspect.CreateEventFilterPage(o.DestDir); err != nil {
-		errs = append(errs, err)
+	if !o.NoTar {
+		if err := inspect.CreateEventFilterPage(o.DestDir); err != nil {
+			errs = append(errs, err)
+		}
 	}
-
 	return errors.NewAggregate(errs)
 }
 
@@ -449,7 +450,7 @@ func (o *MustGatherOptions) waitForGatherContainerRunning(pod *corev1.Pod) error
 	})
 }
 
-func (o *MustGatherOptions) newPod(node, image, sa string,) *corev1.Pod {
+func (o *MustGatherOptions) newPod(node, image, sa string) *corev1.Pod {
 	zero := int64(0)
 
 	nodeSelector := map[string]string{
