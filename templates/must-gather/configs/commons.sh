@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # For Operator ISV
-OPERATOR_NAME="nfs-provisioner-operator"
+OPERATOR_NAME="CHANGE_ME"                     # "nfs-provisioner-operator"
 
-CUSTOM_RESOURCE_LIST=("NFSProvisioner")       #Syntax ("NFSProvisioenr" "NFSTest")
+CUSTOM_RESOURCE_LIST=("CHANGE_ME")       #Syntax ("NFSProvisioenr" "NFSTest")
 
 # Default values
 # Folder where tar ball will be stored

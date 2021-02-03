@@ -6,7 +6,7 @@ mkdir -p ${BASE_COLLECTION_PATH}
 
 # Call other gather scripts
 gather_namespaced_resources ${BASE_COLLECTION_PATH} "${SINCE_TIME}"
-#gather_operand_resources ${BASE_COLLECTION_PATH} "${SINCE_TIME}"
+gather_operand_resources ${BASE_COLLECTION_PATH} "${SINCE_TIME}"
 
 
 echo "deleting empty files" >> ${BASE_COLLECTION_PATH}/gather-debug.log

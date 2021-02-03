@@ -1,8 +1,8 @@
 # Must Gather
-OPERATOR_NAME ?=nfs-provisioner-operator
-DEFAULT_IMAGE_REGISTRY=quay.io
-DEFAULT_REGISTRY_NAMESPACE=jooholee
-DEFAULT_IMAGE_TAG=0.0.1
+OPERATOR_NAME ?=CHANGE_ME                   # nfs-provisioner-operator
+DEFAULT_IMAGE_REGISTRY=CHANGE_ME            # quay.io
+DEFAULT_REGISTRY_NAMESPACE=CHANGE_ME        # jooholee
+DEFAULT_IMAGE_TAG=CHANGE_ME                 # 0.0.1
 DEFAULT_MUST_GATHER_IMAGE_NAME=$(OPERATOR_NAME)-must-gather
 IMAGE_REGISTRY ?=$(DEFAULT_IMAGE_REGISTRY)
 REGISTRY_NAMESPACE ?=$(DEFAULT_REGISTRY_NAMESPACE)
@@ -14,7 +14,7 @@ MUST_GATHER_FULL_IMAGE_NAME=$(IMAGE_REGISTRY)/$(REGISTRY_NAMESPACE)/$(MUST_GATHE
 
 check-must-gather:
 	@echo "Checking the Shellscript"
-	shellcheck -x -P ./collection-scripts/*
+	./hack/shellcheck-test.sh
        
 build-must-gather:
 	@echo "Building the $(OPERATOR_NAME)-must-gather image"
@@ -27,6 +27,5 @@ push-must-gather:
 deploy-must-gather:
 	@echo "Deploying the $(OPERATOR_NAME) must-gather image"
 	isv-install must-gather $(MUST_GATHER_FULL_IMAGE_NAME)
-
 
 must-gather:  build-must-gather push-must-gather
