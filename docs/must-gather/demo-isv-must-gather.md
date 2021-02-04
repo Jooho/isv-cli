@@ -6,7 +6,7 @@
   
 ## Pre-requisites [Appendix 1](#appendix-1)
 - Attach storage(50G) to [worker nodes](https://10.37.197.10/dashboard/project/instances/2f9e01da-19ec-42b1-9299-999318caf243/)
-- Install local storage operator and create LocalVolume CR - [OpenShift Console](console-openshift-console.apps.bell.tamlab.brq.redhat.com)
+- Install local storage operator and create LocalVolume CR - [OpenShift Console](https://console-openshift-console.apps.bell.tamlab.brq.redhat.com/)
 - Create NFS Provisioner CatalogSource
 
 ## Flows
