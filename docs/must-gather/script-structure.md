@@ -1,10 +1,9 @@
 # Must Gather Structure
 
-This show you how the must gather structure looks like and also output as well.
-**must-gather feature is still in heavy develpment so this doc might not be synced up to the latest.**
+This shows you how the must gather structure looks like and also output as well.
+**must-gather feature is still in heavy development so this doc might not be synced up to the latest.**
 
 ## Script Structure
-
 
 - (F)Dockerfile [ex1](https://github.com/openshift/ocs-operator/blob/master/must-gather/Dockerfile), [ex2](https://github.com/openshift/local-storage-operator/Dockerfile.mustgather.rhel7)
 - (F)Makefile [ex1](https://github.com/openshift/local-storage-operator/Makefile)
@@ -18,7 +17,7 @@ This show you how the must gather structure looks like and also output as well.
     - Indicates the product (first line) and the version (second line, major.minor.micro.qualifier)
 - (D)functests
   - (F)functests.sh
-    - Executes must-gather image and produces tar ball.
+    - Executes must-gather image and produces tarball.
   - (F)output-check.sh
     - Check if expected output files exist and they are not empty.
 - (D)templates (optional)
@@ -26,24 +25,24 @@ This show you how the must gather structure looks like and also output as well.
     - If pod yaml needed, this template file can be used.
 - (D)output (optional)
   - (F)output-contents
-    - List up output files and folders with explanation.
+    - List up output files and folders with explanations.
 
 
 
 ### Scripts 
-- [gather](../../examples/must-gather/collection-scripts/gather)
+- [gather](../../templates/must-gather/collection-scripts/gather)
   - Entrypoint script
   - Usually, it should not be touched by anybody.
-- [gather_namespace_resource](../../examples/must-gather/collection-scripts/gather_namespaced_resources)
+- [gather_namespace_resource](../../templates/must-gather/collection-scripts/gather_namespaced_resources)
   - Namespace level data
   - Managed by Red Hat
   - Admin user can gather data
-  - [Target Objects](../../examples/must-gather/collection-scripts/gather_namespaced_resources)
-- [gather_operand_resource](../../examples/must-gather/collection-scripts/gather_operand_resources)
+  - [Target Objects](../../templates/must-gather/collection-scripts/gather_namespaced_resources)
+- [gather_operand_resource](../../templates/must-gather/collection-scripts/gather_operand_resources)
   - Operand specific data
   - Managed by ISV
   - Admin role must be enough to get this data 
-- [commons.sh](../../examples/must-gather/configs/commons.sh)
+- [commons.sh](../../templates/must-gather/configs/commons.sh)
   - Common variables
   - *2 Mandatory update variables*
     - **OPERATOR-NAME**
@@ -51,7 +50,7 @@ This show you how the must gather structure looks like and also output as well.
     - **CUSTOM_RESOURCE_LIST**
       - CR list that operator can create.
 
-- [Makefile](../../examples/must-gather/Makefile)
+- [Makefile](../../templates/must-gather/Makefile)
   - 4 Macros
     - check-must-gather
       - Check shell scripts
@@ -71,7 +70,7 @@ This show you how the must gather structure looks like and also output as well.
     DEFAULT_REGISTRY_NAMESPACE=jooholee
     DEFAULT_IMAGE_TAG=0.0.1
     ~~~
-- [Dockerfile.rhel](../../examples/must-gather/Dockerfile.rhel)
+- [Dockerfile.rhel](../../templates/must-gather/Dockerfile.rhel)
   - Default Dockerfile for a must-gather 
   
 

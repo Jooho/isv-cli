@@ -2,10 +2,10 @@
 
 ISV-CLI is for ISV managed service operator.
 
-## High Level Understanding 
+## High-Level Understanding 
  **about supporting for ISV managed service operator** 
-- When managed service operator have issues, customers(end-user/Red Hat support engineer) need to engage in with ISV directly.
-- ISV need to gather data for debugging.
+- When managed service operators have issues, customers(end-user/Red Hat support engineer) need to engage with ISV directly.
+- ISV needs to gather data for debugging.
 
 ## Assumption
 - Customers have only Admin role.
@@ -17,7 +17,7 @@ ISV-CLI is for ISV managed service operator.
 - However, it requires `cluster-admin` role to execute the command.
 
 ## ISV-CLI Must-Gather
-- ISV-CLI customise OC CLI Must-Gather to meet the requirements.
+- ISV-CLI customize OC CLI Must-Gather to meet the requirements.
 - ISV-CLI provides the following features:
   - login
   - logout
@@ -27,5 +27,4 @@ ISV-CLI is for ISV managed service operator.
   - plain text files which is the same as `oc cli must-gather`
   - tarball format.
 - event-filter.html will be provided.
-
 
