@@ -1,0 +1,106 @@
+# Login with sue user
+./isv-cli login --username sue --password redhat
+
+oc whoami 
+
+# Create a new project
+oc new-project test-sue
+
+# Sue don't have the permission to install operator so Joe need to do it for Sue.
+google-chrome https://console-openshift-console.apps.bell.tamlab.brq.redhat.com
+
+
+# Sue create nfs provisioner 
+
+echo "
+apiVersion: cache.jhouse.com/v1alpha1
+kind: NFSProvisioner
+metadata:
+  name: nfsprovisioner-local-storage
+spec:
+  storageSize: "1G"
+  scForNFSPvc: local-sc
+  SCForNFSProvisioner: nfs"|oc create -f -
+
+# Show all pods are running well and test pvc is working fine.
+oc get pod,pvc
+oc logs nfs-provisioner
+
+echo "
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nfs-pvc-example
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
+  storageClassName: nfs" |oc create -f -
+
+oc get pod,pvc
+
+# Then delete CR 
+oc delete pvc nfs-pvc-example
+oc delete nfsprovisioner --all
+
+oc get pod
+
+# Create hostPath CR which expect some errors
+
+echo "
+apiVersion: cache.jhouse.com/v1alpha1
+kind: NFSProvisioner
+metadata:
+  name: nfsprovisioner-hostpath
+spec:
+  nodeSelector: 
+    kubernetes.io/hostname: worker-1.bell.tamlab.brq.redhat.com
+  hostPathDir: '/home/core/nfs' " |oc create -f -
+
+
+# NFS server is not running
+oc get pod
+NAME                                                           READY   STATUS    RESTARTS   AGE
+nfs-provisioner-fdf85c75c-tqtqv                                0/1     Error     0          5s
+
+# Now, it is time to execute must-gather
+isv-cli must-gather --image=quay.io/jooholee/nfs-provisioner-operator-must-gather:0.0.1
+
+# As ISV perspective, they can get data.
+# Check NFSProvisioner object and pod_log
+~~~
+F0204 18:03:03.424832       1 main.go:91] Error setting up NFS server: error writing ganesha config /export/vfs.conf: open /export/vfs.conf: permission denied
+~~~
+
+# Guess this related to storage issue so it should be checked by openshift administrator
+oc debug node/worker-1.bell.tamlab.brq.redhat.com
+
+# actual(ls -alZ /home/core/nfs)
+# drwxr-xr-x. 2 root root system_u:object_r:user_home_t:s0          6 Feb  4 17:25 .
+
+# expected
+#drwxr-xr-x. 4 root root system_u:object_r:container_file_t:s0     101 Feb  4 17:22 .
+
+# solution
+chcon -Rvt svirt_sandbox_file_t /home/core/nfs
+
+# delete nfs server pod
+oc delete pod nfs-provisioner-xxx
+
+
+# Clean up
+oc delete pvc,NFSProvisioner,csv --all -n test-sue
+
+oc delete project test-sue
+
+
+
+# Util
+oc delete pod,deployment,replicaset -l app=must-gather
+
+oc config use-context openshift-marketplace/api-bell-tamlab-brq-redhat-com:6443/joe
+
+oc config use-context test-sue/api-bell-tamlab-brq-redhat-com:6443/sue
+
