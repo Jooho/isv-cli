@@ -28,3 +28,6 @@ ISV-CLI is for ISV managed service operator.
   - tarball format.
 - event-filter.html will be provided.
 
+## ISV Managed Service User Flow
+- https://www.canva.com/design/DAEVjrWUXqU/sfZTXeeAmz-fQ3jE93jWSQ/edit
+ ![Image](images/ISV-Support-UserFlow.jpg)
