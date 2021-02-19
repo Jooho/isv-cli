@@ -1,0 +1,2 @@
+- Browser feature test
+go run ./cmd/isv-cli.go must-gather --image quay.io/jooholee/nfs-provisioner-operator-must-gather:test --browser --context-dir ~/dev/Managed_Git/operator-projects/tmp/c  --dest-dir ~/dev/Managed_Git/operator-projects/tmp/c

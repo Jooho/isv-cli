@@ -65,6 +65,7 @@ func main() {
 	basename := filepath.Base(os.Args[0])
 
 	command := cli.CommandFor(basename)
+
 	if err := command.Execute(); err != nil {
 		 os.Exit(1)
 	}

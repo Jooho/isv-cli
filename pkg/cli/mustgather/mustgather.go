@@ -20,9 +20,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
+	osexec "os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -81,6 +85,7 @@ type MustGatherOptions struct {
 	Clientset  kubernetes.Interface
 	SourceDir  string
 	NoTar      bool
+	Browser    bool
 }
 
 func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
@@ -103,6 +108,7 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 	cmd.Flags().Int64Var(&o.Timeout, "timeout", 600, "The length of time to gather data, in seconds. Defaults to 10 minutes.")
 	cmd.Flags().BoolVar(&o.NoTar, "notar", o.NoTar, "Copy must-gather data without archive")
 	cmd.Flags().BoolVar(&o.Keep, "keep", o.Keep, "Do not delete temporary resources when command completes.")
+	cmd.Flags().BoolVar(&o.Browser, "browser", o.Browser, "Start web server to download must-gather file")
 	cmd.Flags().MarkHidden("keep")
 
 	cmd.MarkFlagRequired("image")
@@ -142,10 +148,22 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 }
 
 func (o *MustGatherOptions) Validate() error {
+	if strings.ContainsAny(o.DestDir, ".") {
+		return fmt.Errorf("--dest-dir must use absolute path.")
+	}
 	return o.MustGatherOptions.Validate()
 }
 
 func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
+
+	// if o.Browser {
+	// 	fmt.Println("webser start")
+
+	// 	o.startWebServer()
+
+	// 	// wait for goroutine started in startHttpServer() to stop
+
+	// }
 
 	currNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -160,6 +178,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			o.log("unable to parse image reference %s: %v", image, err)
 			return err
 		}
+
 		sa, err := o.Client.CoreV1().ServiceAccounts(currNamespace).Create(context.TODO(), o.newSA(), metav1.CreateOptions{})
 		if err != nil {
 			return err
@@ -207,7 +226,14 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 
 	var wg sync.WaitGroup
 	wg.Add(len(pods))
+
+	// if o.Browser {
+	// 	wg.Add(len(pods) + 1)
+	// } else {
+	// 	wg.Add(len(pods))
+	// }
 	errCh := make(chan error, len(pods))
+
 	for _, pod := range pods {
 
 		go func(pod *corev1.Pod) {
@@ -221,6 +247,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 				errCh <- fmt.Errorf("gather did not start for pod %s: %s", pod.Name, err)
 				return
 			}
+
 			// stream gather container logs
 			if err := o.getGatherContainerLogs(pod); err != nil {
 				log("gather logs unavailable: %v", err)
@@ -261,6 +288,14 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 				return
 			}
 
+			if o.Browser {
+				fmt.Println("Teardown must-gather pod")
+				if err := o.Client.CoreV1().Pods(currNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
+					fmt.Printf("%v\n", err)
+					return
+				}
+			}
+
 		}(pod)
 	}
 	wg.Wait()
@@ -271,38 +306,70 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 	}
 
 	// now gather all the events into a single file and produce a unified file
-	if !o.NoTar {
+	if !o.NoTar || o.Browser {
+		fmt.Println("Creating Event Filter Page")
 		if err := inspect.CreateEventFilterPage(o.DestDir); err != nil {
 			errs = append(errs, err)
 		}
+	}
+
+	if o.Browser {
+		fmt.Println("Adding event-filter-page to must-gather.tar file")
+		cmds := []*osexec.Cmd{
+			osexec.Command("tar", "-uvf", o.DestDir+"/must-gather.tar", "-C", o.DestDir, "event-filter.html"),
+			osexec.Command("tar", "-uvf", o.DestDir+"/must-gather.tar", "-C", o.DestDir, "timestamp"),
+			osexec.Command("rm", o.DestDir+"/event-filter.html", o.DestDir+"/events.yaml", o.DestDir+"/timestamp"),
+		}
+		for _, cmd := range cmds {
+			// cmd := osexec.Command("tar", "-uvf", o.DestDir+"/must-gather.tar", "-C", o.DestDir, "event-filter.html")
+			fmt.Printf("%v\n", cmd)
+			if err := cmd.Start(); err != nil {
+				errs = append(errs, err)
+			}
+
+			if err = cmd.Wait(); err != nil {
+				fmt.Printf("Command finished with error: %v", err)
+				errs = append(errs, err)
+			}
+		}
+
+		fmt.Println("webser start")
+
+		o.startWebServer()
+    
+		fmt.Println("Please check your MustGather CR to know the download url")
 	}
 	return errors.NewAggregate(errs)
 }
 
 // ExecCmdInPod is the same as `oc exec command` to archive must-gather data
 func (o *MustGatherOptions) ExecCmdInPod(pod *corev1.Pod) error {
-
-	options := &exec.ExecOptions{
-		StreamOptions: exec.StreamOptions{
-			IOStreams: genericclioptions.IOStreams{
-				In:     o.In,
-				Out:    o.Out,
-				ErrOut: o.ErrOut,
-			},
-
-			Namespace:     pod.Namespace,
-			PodName:       pod.Name,
-			ContainerName: "copy",
-		},
-		Command:   []string{"tar", "cvf", "/opt/must-gather-root/tar/must-gather.tar", "./must-gather/"},
-		Executor:  &exec.DefaultRemoteExecutor{},
-		Config:    o.RestClient,
-		PodClient: o.Clientset.CoreV1(),
+	cmds := [][]string{
+		{"tar", "cvf", "/opt/must-gather-root/tar/must-gather.tar", "must-gather/"},
+		{"cp", "./must-gather/namespace-scoped-resources/event_filter_data/events.yaml", "/opt/must-gather-root/tar/."},
 	}
+	for _, cmd := range cmds {
+		options := &exec.ExecOptions{
+			StreamOptions: exec.StreamOptions{
+				IOStreams: genericclioptions.IOStreams{
+					In:     o.In,
+					Out:    o.Out,
+					ErrOut: o.ErrOut,
+				},
 
-	err := o.execute(options)
-	kcmdutil.CheckErr(err)
+				Namespace:     pod.Namespace,
+				PodName:       pod.Name,
+				ContainerName: "copy",
+			},
+			Command:   cmd,
+			Executor:  &exec.DefaultRemoteExecutor{},
+			Config:    o.RestClient,
+			PodClient: o.Clientset.CoreV1(),
+		}
 
+		err := o.execute(options)
+		kcmdutil.CheckErr(err)
+	}
 	return nil
 }
 
@@ -576,4 +643,85 @@ func (o *MustGatherOptions) newRoleBinding(sa string) *rbacv1.RoleBinding {
 			},
 		},
 	}
+}
+
+// func (o *MustGatherOptions) startWebServer( wg *sync.WaitGroup) *http.Server {
+func (o *MustGatherOptions) startWebServer() {
+	// fs:= http.FileServer( http.Dir("/tmp"))
+	// http.ListenAndServe(":9000",fs)
+
+	srv := &http.Server{Addr: ":9000"}
+
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "ok\n")
+	})
+
+	http.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
+		handleDownload(srv, "must-gather.tar", o.DestDir, w, r)
+	})
+
+	// http.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
+	// 	srv.Shutdown(context.Background())
+	// })
+
+	// go func() {
+	// 	defer wg.Done() // let main know we are done cleaning up
+
+	// 	// always returns error. ErrServerClosed on graceful close
+	// 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+	// 		// unexpected error. port in use?
+	// 		fmt.Println("ListenAndServe(): %v", err)
+	// 	}
+
+	// }()
+	// always returns error. ErrServerClosed on graceful close
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		// unexpected error. port in use?
+		fmt.Println("ListenAndServe(): %v", err)
+	}
+
+}
+
+func handleDownload(srv *http.Server, fileName, dirName string, w http.ResponseWriter, r *http.Request) {
+	// const receiptPath = "receipts"
+	// urlPathSegments := strings.Split(r.URL.Path, fmt.Sprintf("%s/", receiptPath))
+	// if len(urlPathSegments[1:]) > 1 {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	// fileName := urlPathSegments[1:][0]
+	// fileName := "isv-cli"
+
+	// ReceiptDirectory:= "/opt/isv/bin"
+	var ReceiptDirectory string = filepath.Join(dirName)
+
+	// fileName1 := "a.sh"
+	// ReceiptDirectory:= "/opt/isv/bin"
+	// var ReceiptDirectory string = filepath.Join("/tmp")
+
+	fmt.Println(filepath.Join(ReceiptDirectory, fileName))
+
+	file, err := os.Open(filepath.Join(ReceiptDirectory, fileName))
+	defer file.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	fHeader := make([]byte, 512)
+	file.Read(fHeader)
+	fContentType := http.DetectContentType(fHeader)
+
+	stat, err := file.Stat()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	fSize := strconv.FormatInt(stat.Size(), 10)
+	w.Header().Set("Content-Disposition", "attachment; filename="+fileName)
+	w.Header().Set("Content-Type", fContentType)
+	w.Header().Set("Content-Length", fSize)
+	file.Seek(0, 0)
+	io.Copy(w, file)
+
+	// srv.Shutdown(context.Background())
 }
