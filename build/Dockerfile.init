@@ -1,0 +1,24 @@
+FROM registry.access.redhat.com/ubi8/ubi-init
+ENV ISV_CLI_ROOT=/opt/isv
+ENV PATH=${ISV_CLI_ROOT}/bin:${PATH} HOME=${ISV_CLI_ROOT}
+
+RUN yum -y install httpd; yum clean all; systemctl enable httpd;
+RUN echo "Successful Web Server Test" > /var/www/html/index.html
+RUN mkdir /etc/systemd/system/httpd.service.d/; echo -e '[Service]\nRestart=always' > /etc/systemd/system/httpd.service.d/httpd.conf
+
+
+COPY ./build/isv-cli /opt/isv/bin/
+
+# Change file permission
+RUN chmod -R u+x ${ISV_CLI_ROOT} && \
+    chgrp -R 0 ${ISV_CLI_ROOT} && \
+    chown -R 1001 ${ISV_CLI_ROOT} && \
+    chmod -R g=u ${ISV_CLI_ROOT} /etc/passwd
+
+WORKDIR ${ISV_CLI_ROOT}
+
+USER 1001
+EXPOSE 80
+CMD ${ISV_CLI_ROOT}/bin/isv-cli must-gather
+ENTRYPOINT [ "/sbin/init" ]
+

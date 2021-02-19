@@ -1,14 +1,17 @@
 # ISV CLI VERSION
-CLI_VERSION ?= v0.1
+CLI_VERSION ?= v0.2-alpha
 CLI_PLATFORM ?= linux
 CLI_ARCH ?= amd64
 CLI_IMG ?= quay.io/jooholee/isv-cli:${CLI_VERSION}
 
-build: 
+.PHONY: build
+build:  
+	sed "s/cliVersion =.*/cliVersion = \"$(CLI_VERSION)\"/g" -i ./pkg/cli/cli.go
 	go build ./cmd/isv-cli.go
-
+	cp isv-cli ./build/.
+	# ./hack/build.sh
 test:
-	go test
+	go test ./cmd/isv-cli.go
 
 cli-image: podman-build podman-push
 

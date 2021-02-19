@@ -11,7 +11,7 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.14.1 // indirect
-	github.com/onsi/gomega v1.10.2 // indirect
+	github.com/onsi/gomega v1.10.5 // indirect
 	github.com/openshift/library-go v0.0.0-20210106214821-c4d0b9c8d55f
 	github.com/openshift/oc v4.2.0-alpha.0+incompatible
 	github.com/spf13/cobra v1.1.1
