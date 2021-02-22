@@ -5,7 +5,7 @@ CLI_ARCH ?= amd64
 CLI_IMG ?= quay.io/jooholee/isv-cli:${CLI_VERSION}
 
 .PHONY: build
-build:  
+build: test 
 	sed "s/cliVersion =.*/cliVersion = \"$(CLI_VERSION)\"/g" -i ./pkg/cli/cli.go
 	go build ./cmd/isv-cli.go
 	cp isv-cli ./build/.
