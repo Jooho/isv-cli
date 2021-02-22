@@ -26,4 +26,4 @@ download:
 	test -f ./build/isv-cli || mv ./isv-cli_${CLI_PLATFORM}_${CLI_ARCH} ./build/isv-cli
 
 clean:
-	rm ./isv-cli
+	rm ./isv-cli ./build/isv-cli

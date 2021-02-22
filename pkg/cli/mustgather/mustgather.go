@@ -156,15 +156,6 @@ func (o *MustGatherOptions) Validate() error {
 
 func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 
-	// if o.Browser {
-	// 	fmt.Println("webser start")
-
-	// 	o.startWebServer()
-
-	// 	// wait for goroutine started in startHttpServer() to stop
-
-	// }
-
 	currNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -179,16 +170,25 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			return err
 		}
 
-		sa, err := o.Client.CoreV1().ServiceAccounts(currNamespace).Create(context.TODO(), o.newSA(), metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-		roleBinding, err := o.Client.RbacV1().RoleBindings(currNamespace).Create(context.TODO(), o.newRoleBinding(sa.Name), metav1.CreateOptions{})
-		if err != nil {
-			return err
+		saName := "default"
+		sa := &corev1.ServiceAccount{}
+		roleBinding := &rbacv1.RoleBinding{}
+
+		if !o.Browser {
+			sa, err = o.Client.CoreV1().ServiceAccounts(currNamespace).Create(context.TODO(), o.newSA(), metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+
+			roleBinding, err = o.Client.RbacV1().RoleBindings(currNamespace).Create(context.TODO(), o.newRoleBinding(sa.Name), metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+
+			saName = sa.Name
 		}
 
-		pod, err := o.Client.CoreV1().Pods(currNamespace).Create(context.TODO(), o.newPod(o.NodeName, image, sa.Name), metav1.CreateOptions{})
+		pod, err := o.Client.CoreV1().Pods(currNamespace).Create(context.TODO(), o.newPod(o.NodeName, image, saName), metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -196,14 +196,17 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 		pods = append(pods, pod)
 
 		if !o.Keep {
+
 			defer func() {
-				if err := o.Client.RbacV1().RoleBindings(currNamespace).Delete(context.TODO(), roleBinding.Name, metav1.DeleteOptions{}); err != nil {
-					fmt.Printf("%v\n", err)
-					return
-				}
-				if err := o.Client.CoreV1().ServiceAccounts(currNamespace).Delete(context.TODO(), sa.Name, metav1.DeleteOptions{}); err != nil {
-					fmt.Printf("%v\n", err)
-					return
+				if !o.Browser {
+					if err := o.Client.RbacV1().RoleBindings(currNamespace).Delete(context.TODO(), roleBinding.Name, metav1.DeleteOptions{}); err != nil {
+						fmt.Printf("%v\n", err)
+						return
+					}
+					if err := o.Client.CoreV1().ServiceAccounts(currNamespace).Delete(context.TODO(), sa.Name, metav1.DeleteOptions{}); err != nil {
+						fmt.Printf("%v\n", err)
+						return
+					}
 				}
 				if err := o.Client.CoreV1().Pods(currNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
 					fmt.Printf("%v\n", err)
@@ -227,11 +230,6 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 	var wg sync.WaitGroup
 	wg.Add(len(pods))
 
-	// if o.Browser {
-	// 	wg.Add(len(pods) + 1)
-	// } else {
-	// 	wg.Add(len(pods))
-	// }
 	errCh := make(chan error, len(pods))
 
 	for _, pod := range pods {
@@ -289,7 +287,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			}
 
 			if o.Browser {
-				fmt.Println("Teardown must-gather pod")
+				log("Teardown must-gather pod")
 				if err := o.Client.CoreV1().Pods(currNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
 					fmt.Printf("%v\n", err)
 					return
@@ -333,11 +331,13 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			}
 		}
 
-		fmt.Println("webser start")
+		o.log("Webserver start")
+		o.log("Please check your MustGather CR to know the download url using the following command")
+		o.log("-----------------------------------------------------------------------")
+		o.log("oc get mustgather -o jsonpath=\"{ .items[*].status.downloadURL}\"")
 
 		o.startWebServer()
-    
-		fmt.Println("Please check your MustGather CR to know the download url")
+		
 	}
 	return errors.NewAggregate(errs)
 }
@@ -345,7 +345,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 // ExecCmdInPod is the same as `oc exec command` to archive must-gather data
 func (o *MustGatherOptions) ExecCmdInPod(pod *corev1.Pod) error {
 	cmds := [][]string{
-		{"tar", "cvf", "/opt/must-gather-root/tar/must-gather.tar", "must-gather/"},
+		{"tar", "cvf", "/opt/must-gather-root/tar/must-gather.tar", "must-gather/"} ,
 		{"cp", "./must-gather/namespace-scoped-resources/event_filter_data/events.yaml", "/opt/must-gather-root/tar/."},
 	}
 	for _, cmd := range cmds {
@@ -384,7 +384,7 @@ func (o *MustGatherOptions) execute(options *exec.ExecOptions) error {
 	return nil
 }
 
-// oc mustgather util fuctinos are not exported so copied them from https://github.com/openshift/oc/blob/release-4.7/pkg/cli/admin/mustgather/mustgather.go
+// oc mustgather util methods are not exported so some methods are copied them from https://github.com/openshift/oc/blob/release-4.7/pkg/cli/admin/mustgather/mustgather.go
 
 func newPodOutLogger(out io.Writer, podName string) func(string, ...interface{}) {
 	writer := newPrefixWriter(out, fmt.Sprintf("[%s] OUT", podName))
@@ -535,9 +535,8 @@ func (o *MustGatherOptions) newPod(node, image, sa string) *corev1.Pod {
 			},
 		},
 		Spec: corev1.PodSpec{
-			NodeName:           node,
-			RestartPolicy:      corev1.RestartPolicyNever,
-			ServiceAccountName: sa,
+			NodeName:      node,
+			RestartPolicy: corev1.RestartPolicyNever,
 			Volumes: []corev1.Volume{
 				{
 					Name: "must-gather-output",
@@ -594,6 +593,11 @@ func (o *MustGatherOptions) newPod(node, image, sa string) *corev1.Pod {
 			},
 		},
 	}
+
+	if sa != "default" {
+		ret.Spec.ServiceAccountName = sa
+	}
+
 	if len(o.Command) > 0 {
 		// always force disk flush to ensure that all data gathered is accessible in the copy container
 		ret.Spec.Containers[0].Command = []string{"/bin/bash", "-c", fmt.Sprintf("%s; sync", strings.Join(o.Command, " "))}
@@ -660,48 +664,20 @@ func (o *MustGatherOptions) startWebServer() {
 		handleDownload(srv, "must-gather.tar", o.DestDir, w, r)
 	})
 
-	// http.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
-	// 	srv.Shutdown(context.Background())
-	// })
-
-	// go func() {
-	// 	defer wg.Done() // let main know we are done cleaning up
-
-	// 	// always returns error. ErrServerClosed on graceful close
-	// 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-	// 		// unexpected error. port in use?
-	// 		fmt.Println("ListenAndServe(): %v", err)
-	// 	}
-
-	// }()
 	// always returns error. ErrServerClosed on graceful close
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		// unexpected error. port in use?
-		fmt.Println("ListenAndServe(): %v", err)
+		o.log("ListenAndServe(): %v", err)
 	}
 
 }
 
 func handleDownload(srv *http.Server, fileName, dirName string, w http.ResponseWriter, r *http.Request) {
-	// const receiptPath = "receipts"
-	// urlPathSegments := strings.Split(r.URL.Path, fmt.Sprintf("%s/", receiptPath))
-	// if len(urlPathSegments[1:]) > 1 {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-	// fileName := urlPathSegments[1:][0]
-	// fileName := "isv-cli"
-
-	// ReceiptDirectory:= "/opt/isv/bin"
+	
 	var ReceiptDirectory string = filepath.Join(dirName)
 
-	// fileName1 := "a.sh"
-	// ReceiptDirectory:= "/opt/isv/bin"
-	// var ReceiptDirectory string = filepath.Join("/tmp")
-
-	fmt.Println(filepath.Join(ReceiptDirectory, fileName))
-
 	file, err := os.Open(filepath.Join(ReceiptDirectory, fileName))
+
 	defer file.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -722,6 +698,4 @@ func handleDownload(srv *http.Server, fileName, dirName string, w http.ResponseW
 	w.Header().Set("Content-Length", fSize)
 	file.Seek(0, 0)
 	io.Copy(w, file)
-
-	// srv.Shutdown(context.Background())
 }
