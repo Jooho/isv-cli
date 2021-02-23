@@ -331,10 +331,10 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			}
 		}
 
-		o.log("Webserver start")
-		o.log("Please check your MustGather CR to know the download url using the following command")
-		o.log("-----------------------------------------------------------------------")
-		o.log("oc get mustgather -o jsonpath=\"{ .items[*].status.downloadURL}\"")
+		fmt.Println("Webserver start")
+		fmt.Println("Please check your MustGather CR to know the download url using the following command")
+		fmt.Println("-----------------------------------------------------------------------")
+		fmt.Println("oc get mustgather -o jsonpath=\"{ .items[*].status.downloadURL}\"")
 
 		o.startWebServer()
 		
