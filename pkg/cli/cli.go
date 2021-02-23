@@ -38,7 +38,7 @@ import (
 
 const (
 	productName = `OpenShift ISV Operator`
-	cliVersion = "v0.2.0"
+	cliVersion = "0.2.0"
 )
 
 
