@@ -108,7 +108,7 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 	cmd.Flags().Int64Var(&o.Timeout, "timeout", 600, "The length of time to gather data, in seconds. Defaults to 10 minutes.")
 	cmd.Flags().BoolVar(&o.NoTar, "notar", o.NoTar, "Copy must-gather data without archive")
 	cmd.Flags().BoolVar(&o.Keep, "keep", o.Keep, "Do not delete temporary resources when command completes.")
-	cmd.Flags().BoolVar(&o.Browser, "browser", o.Browser, "Start web server to download must-gather file")
+	cmd.Flags().BoolVar(&o.Browser, "browser", o.Browser, "Start web server to download must-gather file. With this option, the dest-dir option must be set absolute path.")
 	cmd.Flags().MarkHidden("keep")
 
 	cmd.MarkFlagRequired("image")
@@ -148,9 +148,6 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 }
 
 func (o *MustGatherOptions) Validate() error {
-	if strings.ContainsAny(o.DestDir, ".") {
-		return fmt.Errorf("--dest-dir must use absolute path.")
-	}
 	return o.MustGatherOptions.Validate()
 }
 
@@ -170,7 +167,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			return err
 		}
 
-		saName := "default"
+		saName := "isv-cli-sa"
 		sa := &corev1.ServiceAccount{}
 		roleBinding := &rbacv1.RoleBinding{}
 
@@ -193,6 +190,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			return err
 		}
 		o.log("pod for plug-in image %s created", image)
+
 		pods = append(pods, pod)
 
 		if !o.Keep {
@@ -203,7 +201,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 						fmt.Printf("%v\n", err)
 						return
 					}
-					if err := o.Client.CoreV1().ServiceAccounts(currNamespace).Delete(context.TODO(), sa.Name, metav1.DeleteOptions{}); err != nil {
+					if err := o.Client.CoreV1().ServiceAccounts(currNamespace).Delete(context.TODO(), saName, metav1.DeleteOptions{}); err != nil {
 						fmt.Printf("%v\n", err)
 						return
 					}
@@ -319,8 +317,8 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			osexec.Command("rm", o.DestDir+"/event-filter.html", o.DestDir+"/events.yaml", o.DestDir+"/timestamp"),
 		}
 		for _, cmd := range cmds {
-			// cmd := osexec.Command("tar", "-uvf", o.DestDir+"/must-gather.tar", "-C", o.DestDir, "event-filter.html")
-			fmt.Printf("%v\n", cmd)
+
+			// fmt.Printf("%v\n", cmd)
 			if err := cmd.Start(); err != nil {
 				errs = append(errs, err)
 			}
@@ -337,7 +335,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 		fmt.Println("oc get mustgather -o jsonpath=\"{ .items[*].status.downloadURL}\"")
 
 		o.startWebServer()
-		
+
 	}
 	return errors.NewAggregate(errs)
 }
@@ -345,7 +343,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 // ExecCmdInPod is the same as `oc exec command` to archive must-gather data
 func (o *MustGatherOptions) ExecCmdInPod(pod *corev1.Pod) error {
 	cmds := [][]string{
-		{"tar", "cvf", "/opt/must-gather-root/tar/must-gather.tar", "must-gather/"} ,
+		{"tar", "cvf", "/opt/must-gather-root/tar/must-gather.tar", "must-gather/"},
 		{"cp", "./must-gather/namespace-scoped-resources/event_filter_data/events.yaml", "/opt/must-gather-root/tar/."},
 	}
 	for _, cmd := range cmds {
@@ -526,7 +524,7 @@ func (o *MustGatherOptions) newPod(node, image, sa string) *corev1.Pod {
 	if node == "" {
 		nodeSelector["node-role.kubernetes.io/worker"] = ""
 	}
-
+	fmt.Println(sa)
 	ret := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "must-gather-",
@@ -535,8 +533,9 @@ func (o *MustGatherOptions) newPod(node, image, sa string) *corev1.Pod {
 			},
 		},
 		Spec: corev1.PodSpec{
-			NodeName:      node,
-			RestartPolicy: corev1.RestartPolicyNever,
+			NodeName:           node,
+			ServiceAccountName: sa,
+			RestartPolicy:      corev1.RestartPolicyNever,
 			Volumes: []corev1.Volume{
 				{
 					Name: "must-gather-output",
@@ -592,10 +591,6 @@ func (o *MustGatherOptions) newPod(node, image, sa string) *corev1.Pod {
 				},
 			},
 		},
-	}
-
-	if sa != "default" {
-		ret.Spec.ServiceAccountName = sa
 	}
 
 	if len(o.Command) > 0 {
@@ -673,7 +668,7 @@ func (o *MustGatherOptions) startWebServer() {
 }
 
 func handleDownload(srv *http.Server, fileName, dirName string, w http.ResponseWriter, r *http.Request) {
-	
+
 	var ReceiptDirectory string = filepath.Join(dirName)
 
 	file, err := os.Open(filepath.Join(ReceiptDirectory, fileName))
