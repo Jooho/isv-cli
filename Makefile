@@ -1,11 +1,11 @@
 # ISV CLI VERSION
-CLI_VERSION ?= v0.2-alpha
+CLI_VERSION ?= 0.2.0
 CLI_PLATFORM ?= linux
 CLI_ARCH ?= amd64
 CLI_IMG ?= quay.io/jooholee/isv-cli:${CLI_VERSION}
 
 .PHONY: build
-build:  
+build: test 
 	sed "s/cliVersion =.*/cliVersion = \"$(CLI_VERSION)\"/g" -i ./pkg/cli/cli.go
 	go build ./cmd/isv-cli.go
 	cp isv-cli ./build/.
@@ -26,4 +26,4 @@ download:
 	test -f ./build/isv-cli || mv ./isv-cli_${CLI_PLATFORM}_${CLI_ARCH} ./build/isv-cli
 
 clean:
-	rm ./isv-cli
+	rm ./isv-cli ./build/isv-cli
