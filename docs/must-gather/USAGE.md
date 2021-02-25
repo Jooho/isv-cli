@@ -13,7 +13,7 @@ isv-cli login --username=joe --password=redhat
   
 ## Must Gather 
 must-gather is for gathering debugging data for ISV service managed operator.
-
+The must-gather image name convention should be like ${ISV-OPERATOR-NAME}-must-gather:${TAG}
 
 - Syntax
   ~~~
@@ -23,18 +23,18 @@ must-gather is for gathering debugging data for ISV service managed operator.
 - Tarball format
   must-gather.local.XXX/must-gather.tar
   ~~~
-  isv-cli must-gather --image=quay.io/jooholee/nfs-provisioner-operator-must-gather:0.0.1
+  isv-cli must-gather --image=quay.io/jooholee/isv-smoke-must-gather:0.0.1
   ~~~
 
 - Untar format 
   must-gather.local.XXX/quay.io/must-gather-image-sha256XXXX
   ~~~
-  isv-cli must-gather --image=quay.io/jooholee/nfs-provisioner-operator-must-gather:0.0.1 --notar
+  isv-cli must-gather --image=quay.io/jooholee/isv-smoke-must-gather:0.0.1 --notar
   ~~~
 
 - Change destination dir
   ~~~
-  isv-cli must-gather --image=quay.io/jooholee/nfs-provisioner-operator-must-gather:0.0.1 --dest-dir /tmp/
+  isv-cli must-gather --image=quay.io/jooholee/isv-smoke-must-gather:0.0.1 --dest-dir /home/
   ~~~
 
 

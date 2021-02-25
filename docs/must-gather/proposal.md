@@ -29,5 +29,4 @@ ISV-CLI is for ISV managed service operator.
 - event-filter.html will be provided.
 
 ## ISV Managed Service User Flow
-- https://www.canva.com/design/DAEVjrWUXqU/sfZTXeeAmz-fQ3jE93jWSQ/edit
- ![Image](images/ISV-Support-UserFlow.jpg)
+- [Link](https://lucid.app/lucidchart/e285ed40-d6db-4b85-af3f-516117e923e2/edit?page=G3gaqsG8F-Er#)
