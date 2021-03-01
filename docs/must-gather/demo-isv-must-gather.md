@@ -80,75 +80,73 @@ oc delete sa,deployment,rolebinding -l app=must-gather
 ## Appendix
 ### Appendix 1
 - Install local storage operator and create LocalVolume CR 
-  ~~~
-  export product-verion=4.6
-  echo "
-  apiVersion: v1
-  kind: Namespace
-  metadata:
-    name: openshift-local-storage
-  ---
-  apiVersion: operators.coreos.com/v1alpha2
-  kind: OperatorGroup
-  metadata:
-    name: openshift-local-operator-group
-    namespace: openshift-local-storage
-  spec:
-    targetNamespaces:
-      - openshift-local-storage
-  ---
-  apiVersion: operators.coreos.com/v1alpha1
-  kind: Subscription
-  metadata:
-    name: local-storage-operator
-    namespace: openshift-local-storage
-  spec:
-    channel: "${product-version}" 
-    installPlanApproval: Automatic
-    name: local-storage-operator
-    source: redhat-operators
-    sourceNamespace: openshift-marketplace" |oc create -f -
+~~~
+export productVerion=4.6
+echo "
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-local-storage
+---
+apiVersion: operators.coreos.com/v1alpha2
+kind: OperatorGroup
+metadata:
+  name: openshift-local-operator-group
+  namespace: openshift-local-storage
+spec:
+  targetNamespaces:
+    - openshift-local-storage
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: local-storage-operator
+  namespace: openshift-local-storage
+spec:
+  channel: \"${productVersion}\" 
+  installPlanApproval: Automatic
+  name: local-storage-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace" |oc create -f -
 
 
-  oc project openshift-local-storage
+oc project openshift-local-storage
 
-  echo "
-  apiVersion: "local.storage.openshift.io/v1"
-  kind: "LocalVolume"
-  metadata:
-    name: "local-disks"
-    namespace: "openshift-local-storage" 
-  spec:
-    nodeSelector: 
-      nodeSelectorTerms:
-      - matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-            - worker-0.bell.tamlab.brq.redhat.com
-            - worker-1.bell.tamlab.brq.redhat.com
-            - worker-2.bell.tamlab.brq.redhat.com
-    storageClassDevices:
-      - storageClassName: "local-sc"
-        volumeMode: Filesystem 
-        fsType: xfs 
-        devicePaths: 
-          - /dev/vdb" | oc create -f -
-  ~~~
+echo "
+apiVersion: \"local.storage.openshift.io/v1\"
+kind: \"LocalVolume\"
+metadata:
+  name: \"local-disks\"
+  namespace: \"openshift-local-storage\" 
+spec:
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker-0.bell.tamlab.brq.redhat.com
+          - worker-1.bell.tamlab.brq.redhat.com
+          - worker-2.bell.tamlab.brq.redhat.com
+  storageClassDevices:
+    - storageClassName: "local-sc"
+      volumeMode: Filesystem 
+      fsType: xfs 
+      devicePaths: 
+        - /dev/vdb" | oc create -f -
+~~~
 
 - Create nfs-provisioner CatalogSource
-  ~~~
-  oc adm new-project openshift-managed-service
-
-  cat <<EOF | oc apply -f -
-  apiVersion: operators.coreos.com/v1alpha1
-  kind: CatalogSource
-  metadata:
-    name: nfsprovisioner-catalog
-    namespace: openshift-marketplace
-  spec:
-    sourceType: grpc
-    image: quay.io/jooholee/nfs-provisioner-operator-index:0.0.1 
-  EOF
-  ~~~
+~~~
+cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: nfsprovisioner-catalog
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: quay.io/jooholee/nfs-provisioner-operator-index:0.0.1 
+EOF
+~~~
 

@@ -167,7 +167,7 @@ func (o *MustGatherOptions) Run(f kcmdutil.Factory) error {
 			return err
 		}
 
-		saName := "isv-cli-sa"
+		saName := "must-gather-isv-cli-sa"
 		sa := &corev1.ServiceAccount{}
 		roleBinding := &rbacv1.RoleBinding{}
 
