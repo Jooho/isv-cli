@@ -18,14 +18,14 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	
+
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
-	
+
 	"github.com/openshift/oc/pkg/cli/options"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/oc/pkg/helpers/term"
-	
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kubecmd "k8s.io/kubectl/pkg/cmd"
 	"k8s.io/kubectl/pkg/cmd/plugin"
@@ -34,10 +34,11 @@ import (
 
 	"github.com/jooho/isv-cli/pkg/cli/mustgather"
 	"github.com/jooho/isv-cli/pkg/cli/ocwrappers"
+	"github.com/jooho/isv-cli/pkg/cli/testharness"
 )
 
 const (
-	productName = `OpenShift ISV Operator`
+	productName = `ISV`
 	cliVersion = "0.2.0"
 )
 
@@ -45,19 +46,10 @@ const (
 var (
 	cliLong = heredoc.Doc(`
 	` + productName + ` Client
-	This client helps you regarding OpenShift Managed Serviced Operator.
-		  It provides 'must-gather' subcommands to gather necessary data for debugging and
-		  downloaded it in a tarball format.`)
+	This client helps you regarding OpenShift Managed Serviced Operator.`)
 			
-			cliExplain = heredoc.Doc(`
-    To use isv-cli, you must login the cluster first with 'OC' Cli:
-		oc login mycluster.mycompany.com
-        
-    To download must-gather data, you have to specify required options. like:
-		isv-cli must-gather --image=quay.io/isv/nfs-provisioner-must-gather:v0.1
-		
-		Then, you can see nfs-provisioner.must-gather.DATE.XXX.tar 
-		   under the folder where you executed the cmd.
+	cliExplain = heredoc.Doc(`
+	This isv-cli is for ISV related features such as must-gather, test harness.
 			 `)
 			)
 			
@@ -160,12 +152,14 @@ func NewIsvCommand(in io.Reader, out, errout io.Writer) *cobra.Command {
 	
 	loginCmd := ocwrappers.NewCmdLogin(f, ioStreams)
 	mustgatherCmd := mustgather.NewMustGatherCommand(f, ioStreams)
+	testHarnessCmd := testharness.NewtestHarnessCommand(f, ioStreams)
 	groups := ktemplates.CommandGroups{
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
 				mustgatherCmd,
 				loginCmd,
+				testHarnessCmd,
 			},
 		},
 		{

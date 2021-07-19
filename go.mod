@@ -5,19 +5,21 @@ go 1.15
 require (
 	github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd
 	github.com/docker/docker v20.10.2+incompatible // indirect
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.14.1 // indirect
 	github.com/onsi/gomega v1.10.5 // indirect
 	github.com/openshift/library-go v0.0.0-20210106214821-c4d0b9c8d55f
 	github.com/openshift/oc v4.2.0-alpha.0+incompatible
+	github.com/otiai10/copy v1.2.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/zap v1.15.0 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
+	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/apiserver v0.20.2 // indirect
