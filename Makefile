@@ -1,5 +1,5 @@
 # ISV CLI VERSION
-CLI_VERSION ?= 0.2.0
+CLI_VERSION ?= 0.3.0
 CLI_PLATFORM ?= linux
 CLI_ARCH ?= amd64
 CLI_IMG ?= quay.io/jooholee/isv-cli:${CLI_VERSION}
