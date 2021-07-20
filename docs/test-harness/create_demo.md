@@ -1,10 +1,10 @@
-# Demo Senario.
+# Demo Scenario.
 
 ## Situation
 
-Operator: RHODS operator
-ADDON: RHODS
-Dependent ADDONs: None
+- Operator: RHODS operator
+- ADDON: RHODS
+- Dependent ADDONs: None
 
 ## Prerequisites
 ~~~
@@ -48,7 +48,7 @@ TEST_NAMESPACE=redhat-ods-applications
   # MUST UPDATE label (deploymentconfig=jupyterhub) and running pods count (1)
   %ERROR EXPECTED%
 
-  git add .;git commit -m "initial update";git push
+  git add .;git commit -m "initial update";git push --set-upstream origin master
   ~~~
 
 **Test Manifests**
@@ -76,6 +76,8 @@ TEST_NAMESPACE=redhat-ods-applications
 
 **Cluster Test**
   ~~~
+  make image
+
   make cluster-test
   oc logs rhods-operator-test-harness-pod -f -c operator
   
@@ -84,6 +86,6 @@ TEST_NAMESPACE=redhat-ods-applications
 
   git init 
   git remote add origin https://github.com/Jooho/rhods-operator-test-harness
-  git add .;git commit -m "initial update";git push
+  git add .;git commit -m "initial update";git push --set-upstream origin master
   ~~~
 

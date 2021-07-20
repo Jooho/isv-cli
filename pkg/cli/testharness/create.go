@@ -48,7 +48,7 @@ var (
 )
 
 func NewCmdCreate(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewtestHarnessOptions(streams)
+	o := NewTestHarnessOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "create",
@@ -69,7 +69,7 @@ func NewCmdCreate(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobr
 	return cmd
 }
 
-func NewtestHarnessOptions(streams genericclioptions.IOStreams) *TestHarnessOptions {
+func NewTestHarnessOptions(streams genericclioptions.IOStreams) *TestHarnessOptions {
 	return &TestHarnessOptions{
 		ConfigPath: "./config.ini",
 		DestDir:    "./TestHarness",
@@ -192,7 +192,7 @@ func (o *TestHarnessOptions) Run(f kcmdutil.Factory) error {
 
 	o.updateSrcValue(srcFiles)
 
-	fmt.Printf("\n** Test Harness Repositories are Ready: %s **", o.DestDir)
+	fmt.Printf("\n** Test Harness Repositories are Ready: %s **\n", o.DestDir)
 
 	return nil
 }

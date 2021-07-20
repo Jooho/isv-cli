@@ -32,7 +32,7 @@ git add .;git commit -m "initial update"; git push --set-upstream origin master
 make build run
 ~~~
 
-1-4. Push the image
+1-4. Push the imagegit 
 ~~~
 make image
 ~~~
