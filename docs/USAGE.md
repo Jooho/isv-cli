@@ -13,7 +13,7 @@ isv-cli login --username=joe --password=redhat
   
 ## Must Gather 
 must-gather is for gathering debugging data for ISV service managed operator.
-The must-gather image name convention should be like ${ISV-OPERATOR-NAME}-must-gather:${TAG}
+The must-gather image name convention should be like \${ISV-OPERATOR-NAME}-must-gather:\${TAG}
 
 - Syntax
   ~~~
@@ -45,4 +45,16 @@ This is the exactly same as `oc logout`.
 - Usage
   ~~~
   isv-cli logout
+  ~~~
+
+## Test Harness
+
+This help create test harness and manifests repositories for addon.
+
+[Example InI File](https://raw.githubusercontent.com/Jooho/isv-cli/main/templates/test-harness/example-config.ini 
+)
+
+* Create
+  ~~~
+  isv-cli test-harness create --config-path=./config.ini --dest-dir=/tmp/operator
   ~~~

@@ -16,6 +16,7 @@ test:
 cli-image: podman-build podman-push
 
 podman-build: download
+	sed "s/cliVersion =.*/cliVersion = \"$(CLI_VERSION)\"/g" -i ./pkg/cli/cli.go
 	podman build -t ${CLI_IMG} -f $(shell pwd)/build/Dockerfile.isv-cli .
 
 podman-push:

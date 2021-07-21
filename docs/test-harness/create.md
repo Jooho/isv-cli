@@ -11,60 +11,62 @@ This cmd will create Test Harness and Manifests repositories. Test Harness repo 
 1. Manifests
 First, you should take care of manifest repository.
 
-1-1. Update operator.sh
-```
-vi $MANIFESTS_REPO/basictests/operator.sh
+* Update operator.sh
+  ```
+  vi $MANIFESTS_REPO/basictests/operator.sh
 
-# MUST UPDATE label (deploymentconfig=jupyterhub) and running pods count (1)
-%ERROR EXPECTED%
+  # MUST UPDATE label (deploymentconfig=jupyterhub) and running pods count (1)
+  %ERROR EXPECTED%
 
-```
+  ```
 
-1-2. Push the git repo 
-~~~
-git init 
-git remote add origin https://github.com/$ORG/$MANIFESTS-NAME
-git add .;git commit -m "initial update"; git push --set-upstream origin master
-~~~
+* Push the git repo 
+  ~~~
+  git init 
+  git remote add origin https://github.com/$ORG/$MANIFESTS-NAME
+  git add .;git commit -m "initial update"; git push --set-upstream origin master
+  ~~~
 
-1-3. Test
-~~~
-make build run
-~~~
+* Test
+  ~~~
+  make build run
+  ~~~
 
-1-4. Push the imagegit 
-~~~
-make image
-~~~
+* Push the imagegit 
+  ~~~
+  make image
+  ~~~
 
 2. TEST Harness
-2-1. Do job test (this is using the manifests image)
-~~~
-make job-test
-~~~
-2-2. Clean job test
-~~~
-make job-test-clean
-~~~
 
-2-3. Push the git repo
-~~~
-git init 
-git remote add origin https://github.com/$ORG/$TEST_HARNESS_NAME
-git add .;git commit -m "initial update";git push
-~~~
+* Do job test (this is using the manifests image)
+  ~~~
+  make job-test
+  ~~~
 
-2-4. Build/Push an image
-~~~
-make image
-~~~
+* Clean job test
+  ~~~
+  make job-test-clean
+  ~~~
 
-2.5. Cluster Test
-~~~
-make cluster-test
-~~~
+* Push the git repo
+  ~~~
+  git init 
+  git remote add origin https://github.com/$ORG/$TEST_HARNESS_NAME
+  git add .;git commit -m "initial update";git push
+  ~~~
 
-2.6 Clean Cluster Test
-~~~
-make cluster-test-clean
-~~~
+* Build/Push an image
+  ~~~
+  make image
+  ~~~
+
+* Cluster Test
+  ~~~
+  make cluster-test
+  ~~~
+
+* Clean Cluster Test
+  ~~~
+  make cluster-test-clean
+  ~~~

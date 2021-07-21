@@ -17,12 +17,12 @@ make cli-image
 ~~~
 
 ## Download a specific isv-cli release, build and push isv-cli image
-~~~
-# Change Version
+  ~~~
+  # Change Version
 
-make clean
-make cli-image
-~~~
+  make clean
+  make cli-image
+  ~~~
 ## Test
 ~~~
 make test

@@ -7,11 +7,11 @@ This cli is for ISV managed service operator.
 - must-gather
 - login
 - logout
-
+- Test Harness
 
 
 ## USAGE
-Please refer to the [USAGE.md](docs/must-gather/USAGE.md) document for information
+Please refer to the [USAGE.md](docs/USAGE.md) document for information
 
 ## CONTRIBUTE
-Please refer to the [CONTRIBUTING.md](docs/must-gather/CONTRIBUTING.md) document for information.
+Please refer to the [CONTRIBUTING.md](docs/CONTRIBUTING.md) document for information.
