@@ -39,7 +39,7 @@ import (
 
 const (
 	productName = `ISV`
-	cliVersion = "0.3.0"
+	cliVersion = "0.4.0"
 )
 
 

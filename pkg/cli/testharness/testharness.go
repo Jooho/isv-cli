@@ -33,10 +33,12 @@ type TestHarnessOptions struct {
 
 	ConfigPath string
 	DestDir    string
+	TestBranch string
 	ConfigFile *ini.File
 
 	TestHarnessPath string
 	ManifestsPath string
+	OperatorName string
 }
 
 func NewtestHarnessCommand(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {

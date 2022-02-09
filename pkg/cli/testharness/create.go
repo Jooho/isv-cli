@@ -63,8 +63,9 @@ func NewCmdCreate(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobr
 	}
 
 	cmd.Flags().StringVar(&o.ConfigPath, "config-path", o.ConfigPath, "Specify config.yaml path.")
-
 	cmd.Flags().StringVar(&o.DestDir, "dest-dir", o.DestDir, "The destination directory where the Test Harness repositories created.")
+	cmd.Flags().StringVar(&o.TestBranch, "test-branch", "template", "This indicates test branch name for operator-test-harness and manifest-test repo for testing")
+	cmd.Flags().MarkHidden("test-branch")
 
 	return cmd
 }
@@ -106,6 +107,13 @@ func (o *TestHarnessOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	} else {
 		o.ManifestsPath = o.DestDir + "/" + o.getConfValue("Customize", "MANIFESTS_NAME")
 	}
+
+	if operatorName := o.getConfValue("Customize", "OPERATOR_NAME"); operatorName == "" {
+		return fmt.Errorf("OPERATOR_NAME is not found from config file")
+	} else {
+		o.OperatorName = operatorName
+	}
+
 	return nil
 }
 
@@ -138,6 +146,11 @@ func (o *TestHarnessOptions) Run(f kcmdutil.Factory) error {
 
 	fmt.Println("** Create Test Harness Repositories **")
 
+	err = os.Rename("/tmp/test-harness/operator-test-harness/hack/nfsprovisioner-operator", "/tmp/test-harness/operator-test-harness/hack/"+ o.OperatorName)
+	if err != nil {
+		return fmt.Errorf("Failed to rename template operator folder to isv operator name(%s): %s", o.OperatorName, err)
+	}
+
 	err = copy.Copy("/tmp/test-harness/operator-test-harness", o.TestHarnessPath)
 	if err != nil {
 		return fmt.Errorf("Failed to copy test harness repository(%s): %s", o.TestHarnessPath, err)
@@ -147,6 +160,7 @@ func (o *TestHarnessOptions) Run(f kcmdutil.Factory) error {
 	if err != nil {
 		return fmt.Errorf("Failed to copy manifests repository(%s): %s", o.ManifestsPath, err)
 	}
+
 
 	// Update parameters
 	fmt.Println("** Update Variable in Test Harness Repositories **")
@@ -202,7 +216,7 @@ func (o *TestHarnessOptions) cloneTemplateRepos() error {
 	if _, err := git.PlainClone("/tmp/test-harness/operator-test-harness", false, &git.CloneOptions{
 		URL:          "https://github.com/Jooho/operator-test-harness.git",
 		Progress:      nil,
-		ReferenceName: plumbing.ReferenceName("refs/heads/template"),
+		ReferenceName: plumbing.ReferenceName("refs/heads/"+o.TestBranch),
 	}); err != nil {
 		return err
 	}
@@ -210,7 +224,7 @@ func (o *TestHarnessOptions) cloneTemplateRepos() error {
 	if _, err := git.PlainClone("/tmp/test-harness/manifests-test", false, &git.CloneOptions{
 		URL:           "https://github.com/Jooho/manifests-test.git",
 		Progress:      nil,
-		ReferenceName: plumbing.ReferenceName("refs/heads/template"),
+		ReferenceName: plumbing.ReferenceName("refs/heads/"+o.TestBranch),
 	}); err != nil {
 		return err
 	}
